@@ -1,3 +1,3 @@
 # ansible_tutorial
 
-testing cloning Ansible to github.
+Ansible tutorial with github.
