@@ -18,7 +18,7 @@
       update_cache: yes
     when: ansible_distribution == "Ubuntu"
 
-  - name: copy default html file for www.site
+  - name: copy default html file for www site
     tags: apache,apache2,httpd
     copy:
       src: default_site.html
@@ -32,9 +32,12 @@
   become: true
   tasks:
 
-  - name: install unzip
+  - name: install unzip,qemu-guest-agent
     package:
-      name: unzip
+      name:
+        - unzip
+        - qemu-guest-agent
+      state: present
 
   - name: install terraform
     unarchive:
@@ -67,6 +70,30 @@
         - php
       state: latest
     when: ansible_distribution in ["CentOS","Rocky"]
+
+  - name: start httpd (CentOS,Rocky)
+    tags: apache,centos,rocky,httpd
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+    when: ansible_distribution in ["CentOS","Rocky"]
+
+  - name: change e-mail addy for admin
+    tags: apache,centos,rocky,httpd
+    lineinfile:
+      path: /home/aadmin/Documents/test.txt
+      regexp: '^ServerAdmin'
+      line: ServerAdmin somebody@somewhere.net
+    when: ansible_distribution in ["CentOS","Rocky"]
+    register: httpd
+
+  - name: restart httpd (CentOS,Rocky)
+    tags: apache,centos,rocky,httpd
+    service:
+      name: httpd
+      state: restarted
+    when: httpd.changed
 
 
 - hosts: db_servers
