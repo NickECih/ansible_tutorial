@@ -1,4 +1,9 @@
-192.168.1.116 apache_package=apache2 php_package=libapache2-mod-php
-192.168.1.147 apache_package=apache2 php_package=libapache2-mod-php
-192.168.1.163 apache_package=apache2 php_package=libapache2-mod-php
-192.168.1.179 apache_package=httpd php_package=php #Rocky
+[web_servers]
+192.168.1.116 #U
+192.168.1.179 #R
+
+[db_servers]
+192.168.1.147 #U
+
+[file_servers]
+192.168.1.163 #U
