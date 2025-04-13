@@ -1,0 +1,140 @@
+---
+
+- hosts: all
+  become: true
+  pre_tasks:
+
+  - name: update repo cache (CentOS,Rocky)
+    tags: always
+    dnf:
+      update_cache: yes
+    change_when: false
+    when: ansible_distribution in ["CentOS","Rocky"]
+
+  - name: update repo cache (Ubuntu)
+    tags: always
+    apt:
+      update_cache: yes
+    change_when: false
+    when: ansible_distribution == "Ubuntu"
+
+  - name: copy default html file for www site
+    tags: apache,apache2,httpd
+    copy:
+      src: default_site.html
+      dest: /var/www/html/index.html
+      owner: root
+      group: root
+      mode: 0644
+
+
+
+- hosts: all
+  become: true
+  tasks:
+
+  - name: add ssh key for simone
+    tags: always
+    authorized_key:
+      user: simone
+      key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINHlA/Q7jnQU6jUDGHGVh+Imia7cAN6JqwLfaIc8sVIE ansible"
+
+
+
+- hosts: workstations
+  become: true
+  tasks:
+
+  - name: install unzip,qemu-guest-agent
+    package:
+      name:
+        - unzip
+        - qemu-guest-agent
+      state: present
+
+  - name: install terraform
+    unarchive:
+      src: https://releases.hashicorp.com/terraform/1.11.4/terraform_1.11.4_linux_amd64.zip
+      dest: /usr/local/bin
+      remote_src: yes
+      owner: root
+      group: root
+      mode: 0755
+
+
+- hosts: web_servers
+  become: true
+  tasks:
+
+  - name: install apache,php for Ubuntu servers
+    tags: apache,apache2,ubuntu
+    apt:
+      name:
+        - apache2
+        - libapache2-mod-php
+      state: latest
+    when: ansible_distribution == "Ubuntu"
+
+  - name: install apache,php for CentOS,Rocky servers
+    tags: apache,centos,rocky,httpd
+    dnf:
+      name:
+        - httpd
+        - php
+      state: latest
+    when: ansible_distribution in ["CentOS","Rocky"]
+
+  - name: start httpd (CentOS,Rocky)
+    tags: apache,centos,rocky,httpd
+    service:
+      name: httpd
+      state: started
+      enabled: yes
+    when: ansible_distribution in ["CentOS","Rocky"]
+
+  - name: change e-mail addy for admin
+    tags: apache,centos,rocky,httpd
+    lineinfile:
+      path: /home/aadmin/Documents/test.txt
+      regexp: '^ServerAdmin'
+      line: ServerAdmin somebody@somewhere.net
+    when: ansible_distribution in ["CentOS","Rocky"]
+    register: httpd
+
+  - name: restart httpd (CentOS,Rocky)
+    tags: apache,centos,rocky,httpd
+    service:
+      name: httpd
+      state: restarted
+    when: httpd.changed
+
+
+- hosts: db_servers
+  become: true
+  tasks:
+
+  - name: install mariadb package (CentOS,Rocky)
+    tags: centos,rocky,mariadb
+    dnf:
+      name: mariadb
+      state: latest
+    when: ansible_distribution in ["CentOS","Rocky"]
+
+  - name: install mariadb package (Ubuntu)
+    tags: centos,rocky,mariadb
+    apt:
+      name: mariadb-client-core
+      state: latest
+    when: ansible_distribution == "Ubuntu"
+
+
+- hosts: file_servers
+  become: true
+  tasks:
+
+  - name: install samba package
+    tags: samba
+    package:
+      name: samba
+      state: latest
+
